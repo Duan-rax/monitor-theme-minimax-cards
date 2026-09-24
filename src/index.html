@@ -91,6 +91,14 @@ main{padding:18px 0 64px}
 .tile .v.dual .down{color:var(--c1)}
 .tile .v.dual .up{color:var(--c3)}
 .tile .s{font-size:11.5px;color:var(--faint);margin-top:3px;font-variant-numeric:var(--tnum);overflow-wrap:anywhere}
+@media(max-width:520px){
+  .summary{gap:10px}
+  .tile{padding:13px 12px 12px}
+  .tile .v{font-size:20px}
+  .tile .v.dual{display:grid;grid-template-columns:1fr;gap:2px;font-size:14px}
+  .tile .v.dual span{max-width:100%;overflow:hidden;text-overflow:ellipsis}
+  .tile .s{line-height:1.45}
+}
 
 /* ---------- node grid ---------- */
 /* 卡片内容密度高（三路延迟 + 三条占用 + 速率费用流量），最窄也要保证
