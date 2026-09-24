@@ -113,6 +113,7 @@ main{padding:18px 0 64px}
 .sub{margin-top:4px;font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
 .chip{display:inline-flex;align-items:center;gap:5px;height:20px;padding:0 7px;border:1px solid var(--line);border-radius:999px;font-size:11.5px;color:var(--muted);white-space:nowrap;font-variant-numeric:var(--tnum)}
+.flag{font-size:17px;line-height:1;flex-shrink:0;filter:saturate(.92)}
 /* 在线时给状态徽标上一层淡绿底，卡片头部因此有了色彩落点 */
 .chip.live{color:var(--ok);border-color:color-mix(in srgb,var(--ok) 34%,var(--line));background:color-mix(in srgb,var(--ok) 9%,transparent)}
 .chip.warn{border-color:color-mix(in srgb,var(--warn) 34%,var(--line));background:color-mix(in srgb,var(--warn) 9%,transparent)}
@@ -365,6 +366,11 @@ function countryName(code){
   var k = String(code).toUpperCase();
   return COUNTRY[k] || k;
 }
+function countryFlag(code){
+  var k = String(code || "").toUpperCase();
+  if (!/^[A-Z]{2}$/.test(k)) return k;
+  return String.fromCodePoint(127397 + k.charCodeAt(0), 127397 + k.charCodeAt(1));
+}
 var FOREVER = "\u221E";
 var HHMM = new Intl.DateTimeFormat("zh-CN", { hour:"2-digit", minute:"2-digit" });
 var MDHHMM = new Intl.DateTimeFormat("zh-CN", { month:"2-digit", day:"2-digit", hour:"2-digit", minute:"2-digit" });
@@ -419,9 +425,54 @@ var state = {
   me: null, meError: "",
   nodes: null, error: "", closed: false,
   ping: {},          // id -> { probes:[], at }
-  routes: {}         // 当前路由
+  routes: {},        // 当前路由
+  fx: { rates:null, date:"", at:0, error:"" }
 };
 var NODES_LOADED = false;
+
+/* ---------------- Frankfurter 汇率：统一折算成人民币 ---------------- */
+var FX_URL = "https://api.frankfurter.dev/v2/rates?base=USD";
+var FX_KEY = "minimax-cards:fx-usd";
+var FX_TTL = 12 * 60 * 60 * 1000;
+function applyFx(payload){
+  if (!payload || !payload.rates || !num(payload.rates.CNY)) return false;
+  state.fx = { rates:payload.rates, date:payload.date || "", at:payload.at || Date.now(), error:"" };
+  return true;
+}
+function loadFxRates(){
+  var cached = null;
+  try { cached = JSON.parse(localStorage.getItem(FX_KEY) || "null"); } catch (e) {}
+  if (applyFx(cached) && Date.now() - state.fx.at < FX_TTL) return Promise.resolve(state.fx);
+  return fetch(FX_URL, { headers:{ accept:"application/json" } }).then(function(res){
+    if (!res.ok) throw new Error("汇率服务不可用");
+    return res.json();
+  }).then(function(rows){
+    if (!Array.isArray(rows)) throw new Error("汇率格式错误");
+    var rates = { USD:1 }, date = "";
+    rows.forEach(function(row){
+      if (!row || typeof row.quote !== "string" || !num(row.rate) || row.rate <= 0) return;
+      rates[row.quote.toUpperCase()] = row.rate;
+      if (row.quote.toUpperCase() === "CNY") date = row.date || date;
+    });
+    var payload = { rates:rates, date:date, at:Date.now() };
+    if (!applyFx(payload)) throw new Error("缺少人民币汇率");
+    try { localStorage.setItem(FX_KEY, JSON.stringify(payload)); } catch (e) {}
+    if (route.kind === "list" && state.nodes) renderList();
+    return state.fx;
+  }).catch(function(e){
+    state.fx.error = e.message || "汇率不可用";
+    if (route.kind === "list" && state.nodes) renderList();
+    return state.fx;
+  });
+}
+function toCny(amount, currency){
+  var code = String(currency || "CNY").toUpperCase();
+  if (code === "CNY") return amount;
+  var rates = state.fx.rates;
+  if (!rates || !num(rates.CNY)) return null;
+  if (code === "USD") return amount * rates.CNY;
+  return num(rates[code]) && rates[code] > 0 ? amount / rates[code] * rates.CNY : null;
+}
 
 /* ---------------- 历史数据缓存 ---------------- */
 var cache = {};
@@ -726,7 +777,8 @@ function statusChip(n){
 }
 function countryChip(n){
   if (!n.country) return "";
-  return '<span class="chip" title="' + esc(String(n.country).toUpperCase()) + '">' + esc(countryName(n.country)) + '</span>';
+  return '<span class="flag" role="img" aria-label="' + esc(countryName(n.country)) + '" title="' +
+    esc(countryName(n.country)) + '">' + esc(countryFlag(n.country)) + '</span>';
 }
 function expiryText(n){
   var d = daysUntil(n.expires_at);
@@ -794,7 +846,7 @@ function cardLatencyBlock(n){
 }
 
 /* ---------------- 列表页 ---------------- */
-/* 剩余价值按节点自己的币种汇总，不把 USD 与 CNY 直接相加。 */
+/* 剩余价值经 Frankfurter 的 USD 基准交叉汇率统一折算为人民币。 */
 var CYCLE_DAYS = { monthly:30.4375, quarterly:91.3125, semiannual:182.625, yearly:365.25, biennial:730.5, triennial:1095.75 };
 function remainingValue(n){
   var term = CYCLE_DAYS[n.billing_cycle];
@@ -803,32 +855,35 @@ function remainingValue(n){
   return n.price * Math.min(days, term) / term;
 }
 function valueTotals(nodes){
-  var by = {}, order = [], count = 0;
+  var total = 0, count = 0, missing = 0;
   nodes.forEach(function(n){
     var value = remainingValue(n);
     if (value == null) return;
-    var currency = n.currency || "CNY";
-    if (by[currency] == null){ by[currency] = 0; order.push(currency); }
-    by[currency] += value; count++;
+    count++;
+    var cny = toCny(value, n.currency);
+    if (cny == null) missing++;
+    else total += cny;
   });
-  return { count:count, items:order.map(function(currency){ return money(by[currency], currency); }) };
+  return { total:total, count:count, missing:missing };
 }
 function summaryHTML(nodes){
   var total = nodes.length, online = 0;
-  var dayRx = 0, dayTx = 0, monthRx = 0, monthTx = 0, speedRx = 0, speedTx = 0;
+  var dayRx = 0, dayTx = 0, allRx = 0, allTx = 0, speedRx = 0, speedTx = 0;
   nodes.forEach(function(n){
     if (n.online) online++;
     dayRx += num(n.day_rx) ? n.day_rx : 0;
     dayTx += num(n.day_tx) ? n.day_tx : 0;
-    monthRx += num(n.month_rx) ? n.month_rx : 0;
-    monthTx += num(n.month_tx) ? n.month_tx : 0;
+    allRx += num(n.total_rx) ? n.total_rx : 0;
+    allTx += num(n.total_tx) ? n.total_tx : 0;
     if (n.online && n.metrics){ speedRx += n.metrics.net_rx; speedTx += n.metrics.net_tx; }
   });
   var values = valueTotals(nodes);
   var onlinePct = total ? Math.round(online/total*100) : 0;
-  var valueMain = values.items.length ? esc(values.items[0]) : "—";
+  var valueMain = values.count && !values.missing ? money(values.total, "CNY") : values.count ? "加载中…" : "—";
+  if (values.missing && state.fx.error) valueMain = "暂不可用";
   var valueSub = values.count ? values.count + " 台计价" : "未设置价格或到期日";
-  if (values.items.length > 1) valueSub += " · " + esc(values.items.slice(1).join(" + "));
+  if (values.count && state.fx.date) valueSub += " · 汇率 " + esc(state.fx.date.slice(5));
+  else if (values.missing && state.fx.error) valueSub += " · " + esc(state.fx.error);
   return '<div class="summary">' +
     '<div class="tile t-online"><div class="k"><span class="dot' + (online ? " pulse" : " off") + '"></span>在线节点</div>' +
       '<div class="v tnum">' + online + '<small>/ ' + total + '</small></div>' +
@@ -836,10 +891,9 @@ function summaryHTML(nodes){
     '<div class="tile t-value"><div class="k">剩余价值</div><div class="v tnum">' + valueMain + '</div>' +
       '<div class="s">' + valueSub + '</div></div>' +
     '<div class="tile t-flow"><div class="k">流量统计</div><div class="v tnum">' + bytes(dayRx + dayTx) + '</div>' +
-      '<div class="s">今日 ↓ ' + bytes(dayRx) + ' · ↑ ' + bytes(dayTx) + '　本月 ' + bytes(monthRx + monthTx) + '</div></div>' +
+      '<div class="s">今日 ↓ ' + bytes(dayRx) + ' · ↑ ' + bytes(dayTx) + '　全部 ' + bytes(allRx + allTx) + '</div></div>' +
     '<div class="tile t-speed"><div class="k">实时网速</div><div class="v dual tnum">' +
-      '<span class="down">↓ ' + rate(speedRx) + '</span><span class="up">↑ ' + rate(speedTx) + '</span></div>' +
-      '<div class="s">所有在线节点当前合计</div></div>' +
+      '<span class="down">↓ ' + rate(speedRx) + '</span><span class="up">↑ ' + rate(speedTx) + '</span></div></div>' +
   '</div>';
 }
 function nodeCard(n){
@@ -1391,6 +1445,7 @@ function boot(){
     if (!me.public_page && !me.authed){ location.href = "/admin/"; return; }
     shell();
     applyRoute();
+    loadFxRates();
     connect();
     // 详情页每 60 秒刷新一次图表，避免频繁重绘
     setInterval(function(){
