@@ -99,7 +99,7 @@ main{padding:18px 0 64px}
 @media(min-width:780px){.grid{grid-template-columns:repeat(2,1fr)}}
 @media(min-width:1140px){.grid{grid-template-columns:repeat(3,1fr)}}
 
-.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:14px;min-width:0;cursor:pointer;
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:13px;min-width:0;cursor:pointer;
   box-shadow:var(--sh-1);transition:border-color .18s,transform .18s,box-shadow .18s}
 .card:hover{border-color:var(--faint);transform:translateY(-2px);box-shadow:var(--sh-2)}
 .card:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
@@ -125,11 +125,11 @@ main{padding:18px 0 64px}
 .exp{font-size:11.5px;font-variant-numeric:var(--tnum);white-space:nowrap}
 
 /* ---------- 延迟检测块：每路探测一行，三网就有三行 ---------- */
-.latbox{margin-top:12px;padding:10px 11px 9px;border:1px solid var(--line-2);border-radius:var(--r-sm);
+.latbox{margin-top:10px;padding:8px 10px 7px;border:1px solid var(--line-2);border-radius:var(--r-sm);
   background:linear-gradient(180deg,color-mix(in srgb,var(--c1) 5%,var(--panel)) 0%,var(--panel-2) 100%)}
 .lathead{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:11px;color:var(--muted);margin-bottom:5px}
 .lathead .hint{font-size:10.5px;color:var(--faint)}
-.latrow{display:grid;grid-template-columns:minmax(0,1fr) minmax(32px,1.05fr) auto;align-items:center;gap:9px;height:23px;font-size:11.5px}
+.latrow{display:grid;grid-template-columns:minmax(0,1fr) minmax(32px,1.05fr) auto;align-items:center;gap:9px;height:21px;font-size:11.5px}
 .latrow .pn{display:flex;align-items:center;gap:6px;min-width:0;color:var(--muted)}
 /* 色点与曲线同色，一路一色；名称保持中性，三行彩色文字反而不好认 */
 .latrow .pn .pd{width:7px;height:7px;border-radius:50%;flex-shrink:0}
@@ -146,37 +146,39 @@ main{padding:18px 0 64px}
 .latrow.solo .pn{color:var(--faint)}
 .latmore{font-size:10.5px;color:var(--faint);padding-top:2px}
 
-/* ---------- 三条占用：CPU / 内存 / 硬盘，各有一色 ---------- */
-.meters{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:12px}
+/* ---------- 四项指标：名称和百分比、进度条、原始值三层阅读 ---------- */
+.meters{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:11px}
+@media(max-width:620px){.meters{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 14px}}
 .meter{min-width:0}
-.meter .ml{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.meter .mv{font-size:11.5px;font-variant-numeric:var(--tnum);color:var(--fg);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.bar{height:3px;border-radius:2px;background:var(--line);margin-top:6px;overflow:hidden}
-.bar i{display:block;height:100%;border-radius:2px;background:var(--fill,var(--fg));transition:width .4s ease}
+.meter .ml{display:flex;align-items:baseline;justify-content:space-between;gap:8px;font-size:11.5px;color:var(--muted)}
+.meter .ml span{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.meter .ml b{flex-shrink:0;color:var(--fill,var(--fg));font-size:12px;font-weight:620;font-variant-numeric:var(--tnum)}
+.meter .ml b.warn{color:var(--warn)}
+.meter .ml b.bad{color:var(--bad)}
+.meter .ml b.flat{color:var(--faint)}
+.bar{height:5px;border-radius:999px;background:var(--line);margin-top:6px;overflow:hidden}
+.bar i{display:block;height:100%;border-radius:999px;background:var(--fill,var(--fg));transition:width .4s ease}
 .bar i.warn{background:var(--warn)}
 .bar i.bad{background:var(--bad)}
 .bar i.flat{background:var(--faint)}
+.meter .mv{margin-top:5px;font-size:11px;color:var(--muted);font-variant-numeric:var(--tnum);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
-/* ---------- 脚注：速率与费用一行，流量统计压成一行 ---------- */
-.cfoot{margin-top:12px;padding-top:11px;border-top:1px solid var(--line-2);font-variant-numeric:var(--tnum)}
-.cfoot .crow{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;font-size:11.5px}
-.cfoot .rates{display:inline-flex;gap:14px;min-width:0}
+/* ---------- 脚注：实时速率、价格与累计流量分层显示 ---------- */
+.cfoot{margin-top:11px;padding-top:9px;border-top:1px solid var(--line-2);font-variant-numeric:var(--tnum)}
+.cfoot .crow{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;font-size:12px}
+.cfoot .rates{display:inline-flex;gap:18px;min-width:0}
 .cfoot .io{color:var(--muted);white-space:nowrap}
 .cfoot .io .d{color:var(--c1)}
 .cfoot .io .u{color:var(--c2)}
-.cfoot .io b{color:var(--fg);font-weight:550}
-/* 价格栏：margin-left:auto 保证即使这一行换行、它独占一行时也仍然贴右。
-   注意类名不能叫 .cost——详情页费用明细的 .cost 是四列网格，全局生效会把它也套进去。 */
+.cfoot .io b{color:var(--fg);font-size:12.5px;font-weight:620}
 .cfoot .price{margin-left:auto;text-align:right;color:var(--muted);white-space:nowrap}
-.cfoot .price b{color:var(--fg);font-weight:550}
+.cfoot .price b{color:var(--fg);font-weight:620}
 .cfoot .price b.free{color:var(--ok)}
-.cfoot .trafficbar{height:2px;border-radius:1px;background:var(--line);margin:7px 0 6px;overflow:hidden}
-.cfoot .trafficbar i{display:block;height:100%;border-radius:1px;background:var(--c4);transition:width .4s ease}
-.cfoot .trafficbar i.warn{background:var(--warn)}
-.cfoot .trafficbar i.bad{background:var(--bad)}
-/* 同理不能叫 .sub：卡片头部的系统行 .sub 带 overflow:hidden 与 nowrap，会把这行裁掉 */
-.cfoot .crow.small{font-size:11px;color:var(--faint)}
-.cfoot .crow.small b{color:var(--muted);font-weight:550}
+.cfoot .totals{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:7px;padding-top:7px;border-top:1px solid var(--line-2)}
+.cfoot .total{display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0;font-size:11.5px;color:var(--muted)}
+.cfoot .total b{color:var(--fg);font-weight:550;white-space:nowrap}
+.cfoot .total .d{color:var(--c1)}
+.cfoot .total .u{color:var(--c2)}
 
 .empty{padding:64px 0;text-align:center;font-size:13px;color:var(--muted)}
 .skel{background:linear-gradient(90deg,var(--line-2),var(--line),var(--line-2));background-size:200% 100%;animation:sh 1.4s linear infinite;border-radius:var(--r)}
@@ -333,12 +335,7 @@ function money(amount, currency){
   return s ? s + amount.toFixed(2) : amount.toFixed(2) + (currency ? " " + currency : "");
 }
 var CYCLES = { monthly:"月付", quarterly:"季付", semiannual:"半年付", yearly:"年付", biennial:"两年付", triennial:"三年付", once:"一次性" };
-var CYCLE_MONTHS = { monthly:1, quarterly:3, semiannual:6, yearly:12, biennial:24, triennial:36 };
 function cycleLabel(c){ return CYCLES[c] || (c ? c : "—"); }
-function monthlyCost(n){
-  var m = CYCLE_MONTHS[n.billing_cycle];
-  return m && num(n.price) && n.price > 0 ? n.price / m : null;
-}
 var MODE_LABEL = { up:"仅上行", down:"仅下行", max:"取较大", sum:"双向合计", both:"双向合计" };
 function modeLabel(m){ return MODE_LABEL[m] || "双向合计"; }
 function monthUsage(n){
@@ -788,13 +785,14 @@ function expiryText(n){
 }
 /** 卡片上的占用条：标签、数值、细条各占一行，三列并排也放得下。
  *  `fill` 是该条在正常水位下的颜色（超过 75% / 90% 仍会转成告警色）。 */
-function meter(label, pct, foot, fill){
+function meter(label, pct, foot, fill, empty){
   var p = pct == null ? null : clamp(pct, 0, 100);
   var tone = p == null ? "flat" : p >= 90 ? "bad" : p >= 75 ? "warn" : "";
+  var value = p == null ? (empty || "—") : (p < 10 ? p.toFixed(1) : p.toFixed(0)) + "%";
   return '<div class="meter"' + (fill ? ' style="--fill:' + fill + '"' : '') + '>' +
-    '<div class="ml">' + esc(label) + '</div>' +
-    '<div class="mv">' + esc(foot) + '</div>' +
-    '<div class="bar"><i class="' + tone + '" style="width:' + (p == null ? 0 : p).toFixed(1) + '%"></i></div></div>';
+    '<div class="ml"><span>' + esc(label) + '</span><b class="' + tone + '">' + esc(value) + '</b></div>' +
+    '<div class="bar"><i class="' + tone + '" style="width:' + (p == null ? 0 : p).toFixed(1) + '%"></i></div>' +
+    '<div class="mv">' + esc(foot) + '</div></div>';
 }
 /**
  * 延迟检测块：一路探测一行，三网就有三行。
@@ -903,16 +901,11 @@ function nodeCard(n){
   var used = monthUsage(n);
   var hasLimit = num(n.traffic_limit) && n.traffic_limit > 0;
   var trafficPct = hasLimit ? percent(used, n.traffic_limit) : null;
-  var trafficTone = trafficPct == null ? "" : trafficPct >= 90 ? "bad" : trafficPct >= 75 ? "warn" : "";
-  var trafficText = hasLimit ? pair(used, n.traffic_limit) + " · " + trafficPct.toFixed(1) + "%"
-    : bytes(used) + " / " + FOREVER;
-  var mc = monthlyCost(n);
-  // 没填价格的机器按「免费」呈现。有价格时才需要带计费周期，
-  // 否则会渲染成「— ¥0.00」这种读不通的组合。
-  var costHTML;
-  if (mc != null) costHTML = esc(cycleLabel(n.billing_cycle)) + ' <b>' + esc(money(mc, n.currency)) + '/月</b>';
-  else if (num(n.price) && n.price > 0) costHTML = esc(cycleLabel(n.billing_cycle)) + ' <b>' + esc(money(n.price, n.currency)) + '</b>';
-  else costHTML = '<b class="free">免费</b>';
+  var trafficFoot = hasLimit ? pairShort(used, n.traffic_limit) : bytes(used) + " / " + FOREVER;
+  // 首页直接显示节点填写的价格，不再折算月均。
+  var costHTML = num(n.price) && n.price > 0
+    ? esc(cycleLabel(n.billing_cycle)) + ' <b>' + esc(money(n.price, n.currency)) + '</b>'
+    : '<b class="free">免费</b>';
 
   var sub = n.os ? osName(n.os) : "等待首次上报";
   if (n.virt && n.virt !== "none") sub += " · " + n.virt;
@@ -933,6 +926,7 @@ function nodeCard(n){
           m ? pairShort(m.mem_used, m.mem_total) : bytes(n.mem_total), "var(--c5)") +
         meter("硬盘", m ? percent(m.disk_used, m.disk_total) : null,
           m ? pairShort(m.disk_used, m.disk_total) : bytes(n.disk_total), "var(--c3)") +
+        meter("流量", trafficPct, trafficFoot, "var(--c4)", FOREVER) +
       '</div>' +
       '<div class="cfoot">' +
         '<div class="crow">' +
@@ -942,12 +936,9 @@ function nodeCard(n){
           '</span>' +
           '<span class="price">' + costHTML + '</span>' +
         '</div>' +
-        (trafficPct != null
-          ? '<div class="trafficbar"><i class="' + trafficTone + '" style="width:' + trafficPct.toFixed(1) + '%"></i></div>'
-          : '') +
-        '<div class="crow small">' +
-          '<span>流量 <b>' + esc(trafficText) + '</b></span>' +
-          '<span>累计 ↓' + bytes(n.total_rx) + ' ↑' + bytes(n.total_tx) + '</span>' +
+        '<div class="totals">' +
+          '<span class="total"><span><i class="d">↓</i> 累计下载</span><b>' + bytes(n.total_rx) + '</b></span>' +
+          '<span class="total"><span><i class="u">↑</i> 累计上传</span><b>' + bytes(n.total_tx) + '</b></span>' +
         '</div>' +
       '</div>';
   }
@@ -998,7 +989,6 @@ function resetLatView(){
 }
 
 function costPanel(n){
-  var mc = monthlyCost(n);
   var days = daysUntil(n.expires_at);
   var hasLimit = num(n.traffic_limit) && n.traffic_limit > 0;
   var used = monthUsage(n);
@@ -1009,10 +999,9 @@ function costPanel(n){
     '<div class="costgrid">' +
       '<div class="item"><div class="k">价格</div><div class="v">' +
         (num(n.price) && n.price > 0
-          ? esc(money(n.price, n.currency)) + '<small>/ ' + esc(cycleLabel(n.billing_cycle)) + '</small>'
+          ? esc(cycleLabel(n.billing_cycle)) + ' ' + esc(money(n.price, n.currency))
           : '<span class="ok">免费</span>') +
       '</div></div>' +
-      '<div class="item"><div class="k">折合月均</div><div class="v">' + (mc != null ? esc(money(mc, n.currency)) : "—") + '</div></div>' +
       '<div class="item"><div class="k">到期时间</div><div class="v">' + esc(dateStr(n.expires_at)) +
         (days != null ? '<small class="' + (days < 0 ? "bad" : days <= 7 ? "warn" : "") + '">' +
           (days < 0 ? "已过期 " + (-days) + " 天" : days + " 天后") + '</small>' : "") + '</div></div>' +
