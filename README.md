@@ -25,6 +25,8 @@ npm run build
 
 构建脚本会检查内联 JavaScript 语法与必要功能标记，然后生成 `dist/index.html`。
 
+发布前运行 `npm run package`，脚本会生成目录权限为 0755、文件权限为 0644 的 `theme.tar.gz` 和 SHA256 校验文件，兼容 Linux 容器解包。
+
 ## 安装
 
 主题目录结构：
