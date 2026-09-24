@@ -1,4 +1,4 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises"
+import { cp, mkdir, readFile, writeFile } from "node:fs/promises"
 
 const source = await readFile(new URL("../src/index.html", import.meta.url), "utf8")
 const inlineScript = source.match(/<script>([\s\S]*?)<\/script>/)
@@ -9,4 +9,5 @@ for (const marker of ["在线节点", "剩余价值", "流量统计", "实时网
 }
 await mkdir(new URL("../dist/", import.meta.url), { recursive: true })
 await writeFile(new URL("../dist/index.html", import.meta.url), source)
-console.log(`built dist/index.html (${Buffer.byteLength(source)} bytes)`)
+await cp(new URL("../src/flags/", import.meta.url), new URL("../dist/flags/", import.meta.url), { recursive: true, force: true })
+console.log(`built dist/index.html (${Buffer.byteLength(source)} bytes) with SVG flags`)
