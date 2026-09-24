@@ -1,0 +1,8 @@
+{
+  "name": "Minimax Cards",
+  "short": "minimax-cards",
+  "description": "紧凑公开状态页：在线节点、剩余价值、流量与实时网速一屏可读",
+  "version": "1.0.0",
+  "author": "Duan-rax",
+  "url": "https://github.com/Duan-rax/monitor-theme-minimax-cards"
+}
